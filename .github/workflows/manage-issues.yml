@@ -12,17 +12,14 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            // Get all collaborators (members) of the repo
-            const collaborators = await github.paginate(
-              github.rest.repos.listCollaborators,
-              {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                affiliation: 'all'
-              }
-            );
-            const allowedUsers = collaborators.map(user => user.login);
-            if (!allowedUsers.includes(context.payload.issue.user.login)) {
+            // Get the permission level of the issue author
+            const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: context.payload.issue.user.login
+            });
+            const allowedPermissions = ['admin', 'maintain', 'write'];
+            if (!allowedPermissions.includes(perm.permission)) {
               // Add comment
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
